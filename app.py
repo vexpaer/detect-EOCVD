@@ -19,6 +19,7 @@ import warnings
 import uuid
 from datetime import datetime
 import io
+import pickle
 
 warnings.filterwarnings('ignore')
 
@@ -46,13 +47,31 @@ DIAGNOSIS_THRESHOLD = 0.46
 PROGNOSIS_THRESHOLD = 1.944
 
 # ============================================================================
-# 加载模型
+# 加载模型 - 使用兼容的加载方式
 # ============================================================================
 
 print("Loading models...")
-diagnosis_model = joblib.load(DIAGNOSIS_MODEL_PATH)
+
+# 修复：使用pickle加载CatBoost模型
+try:
+    # 尝试用joblib加载，如果失败则用pickle
+    diagnosis_model = joblib.load(DIAGNOSIS_MODEL_PATH)
+except Exception as e:
+    print(f"Joblib加载失败，尝试使用pickle加载: {e}")
+    with open(DIAGNOSIS_MODEL_PATH, 'rb') as f:
+        diagnosis_model = pickle.load(f)
+
+# 对于其他模型，继续使用joblib
 prognosis_model = joblib.load(PROGNOSIS_MODEL_PATH)
-explainer = joblib.load(SHAP_EXPLAINER_PATH)
+
+# 尝试不同方式加载SHAP解释器
+try:
+    explainer = joblib.load(SHAP_EXPLAINER_PATH)
+except Exception as e:
+    print(f"Joblib加载SHAP解释器失败，尝试使用pickle加载: {e}")
+    with open(SHAP_EXPLAINER_PATH, 'rb') as f:
+        explainer = pickle.load(f)
+
 print("Models loaded successfully!")
 
 # ============================================================================
@@ -84,55 +103,75 @@ def create_input_data(data):
 
 def generate_shap_plot(X, diagnosis_proba):
     """生成SHAP力图"""
-    # 计算SHAP值
-    shap_values_original = explainer(X)
-    
-    # 获取SHAP值和基线值
-    original_shap_values = shap_values_original[0].values
-    original_base_value = shap_values_original[0].base_values
-    
-    # 调整SHAP值
-    if np.sum(np.abs(original_shap_values)) > 0:
-        adjustment_factor = (diagnosis_proba - original_base_value) / np.sum(original_shap_values)
-        adjusted_shap_values = original_shap_values * adjustment_factor
-    else:
-        adjusted_shap_values = original_shap_values
-        original_base_value = diagnosis_proba
-    
-    # 创建SHAP Explanation对象
-    custom_explanation = shap.Explanation(
-        values=adjusted_shap_values,
-        base_values=original_base_value,
-        data=shap_values_original[0].data,
-        feature_names=X.columns.tolist()
-    )
-    
-    # 绘制力图
-    fig = plt.figure(figsize=(12, 6))
-    shap.force_plot(
-        custom_explanation,
-        matplotlib=True,
-        text_rotation=45,
-        show=False
-    )
-    
-    # 移除f(x)文本
-    ax = plt.gca()
-    for text in ax.texts:
-        if 'f(x)' in text.get_text():
-            text.set_visible(False)
-    
-    plt.tight_layout()
-    
-    # 保存为临时文件
-    shap_filename = f'shap_{uuid.uuid4().hex}.pdf'
-    shap_path = os.path.join('static', 'temp', shap_filename)
-    os.makedirs(os.path.join('static', 'temp'), exist_ok=True)
-    
-    plt.savefig(shap_path, bbox_inches='tight', dpi=300)
-    plt.close()
-    
-    return shap_filename
+    try:
+        # 计算SHAP值
+        shap_values_original = explainer(X)
+        
+        # 获取SHAP值和基线值
+        original_shap_values = shap_values_original[0].values
+        original_base_value = shap_values_original[0].base_values
+        
+        # 调整SHAP值
+        if np.sum(np.abs(original_shap_values)) > 0:
+            adjustment_factor = (diagnosis_proba - original_base_value) / np.sum(original_shap_values)
+            adjusted_shap_values = original_shap_values * adjustment_factor
+        else:
+            adjusted_shap_values = original_shap_values
+            original_base_value = diagnosis_proba
+        
+        # 创建SHAP Explanation对象
+        custom_explanation = shap.Explanation(
+            values=adjusted_shap_values,
+            base_values=original_base_value,
+            data=shap_values_original[0].data,
+            feature_names=X.columns.tolist()
+        )
+        
+        # 绘制力图
+        fig = plt.figure(figsize=(12, 6))
+        shap.force_plot(
+            custom_explanation,
+            matplotlib=True,
+            text_rotation=45,
+            show=False
+        )
+        
+        # 移除f(x)文本
+        ax = plt.gca()
+        for text in ax.texts:
+            if 'f(x)' in text.get_text():
+                text.set_visible(False)
+        
+        plt.tight_layout()
+        
+        # 保存为临时文件
+        shap_filename = f'shap_{uuid.uuid4().hex}.pdf'
+        shap_path = os.path.join('static', 'temp', shap_filename)
+        os.makedirs(os.path.join('static', 'temp'), exist_ok=True)
+        
+        plt.savefig(shap_path, bbox_inches='tight', dpi=300)
+        plt.close()
+        
+        return shap_filename
+    except Exception as e:
+        print(f"生成SHAP图时出错: {e}")
+        # 返回一个占位符PDF
+        shap_filename = f'shap_placeholder_{uuid.uuid4().hex}.pdf'
+        shap_path = os.path.join('static', 'temp', shap_filename)
+        os.makedirs(os.path.join('static', 'temp'), exist_ok=True)
+        
+        # 创建简单的占位符PDF
+        from matplotlib.backends.backend_pdf import PdfPages
+        with PdfPages(shap_path) as pdf:
+            fig, ax = plt.subplots(figsize=(12, 6))
+            ax.text(0.5, 0.5, 'SHAP Plot Could Not Be Generated\n\nPlease check the model and data format.',
+                   ha='center', va='center', fontsize=14, wrap=True)
+            ax.set_title('SHAP Force Plot - Placeholder')
+            ax.axis('off')
+            pdf.savefig(fig, bbox_inches='tight')
+            plt.close()
+        
+        return shap_filename
 
 # ============================================================================
 # 路由
@@ -157,6 +196,7 @@ def predict_diagnosis():
         # 诊断预测
         # ====================================================================
         
+        # 使用predict_proba获取概率
         diagnosis_proba = diagnosis_model.predict_proba(X)[:, 1][0]
         diagnosis_risk = "high" if diagnosis_proba >= DIAGNOSIS_THRESHOLD else "low"
         diagnosis_image = "诊断高风险1.png" if diagnosis_risk == "high" else "诊断低风险1.png"
@@ -186,6 +226,7 @@ def predict_diagnosis():
         return jsonify(result)
         
     except Exception as e:
+        print(f"诊断预测错误: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -205,6 +246,7 @@ def predict_prognosis():
         # 预后预测
         # ====================================================================
         
+        # 使用CoxPH模型的predict_partial_hazard方法
         prognosis_risk_score = prognosis_model.predict_partial_hazard(X).values[0]
         prognosis_risk = "high" if prognosis_risk_score >= PROGNOSIS_THRESHOLD else "low"
         prognosis_image = "预后图1高风险.png" if prognosis_risk == "high" else "预后图1低风险.png"
@@ -227,6 +269,7 @@ def predict_prognosis():
         return jsonify(result)
         
     except Exception as e:
+        print(f"预后预测错误: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -244,6 +287,29 @@ def download_shap(filename):
         )
     except Exception as e:
         return jsonify({'error': str(e)}), 404
+
+# ============================================================================
+# 清理临时文件的任务（可选）
+# ============================================================================
+
+import atexit
+import glob
+import time
+
+def cleanup_temp_files():
+    """清理临时文件"""
+    temp_dir = 'static/temp'
+    if os.path.exists(temp_dir):
+        for file in glob.glob(os.path.join(temp_dir, 'shap_*.pdf')):
+            try:
+                # 删除创建时间超过1小时的文件
+                if time.time() - os.path.getctime(file) > 3600:
+                    os.remove(file)
+            except:
+                pass
+
+# 注册清理函数
+atexit.register(cleanup_temp_files)
 
 # ============================================================================
 # 主程序
