@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cardiovascular Disease Risk Assessment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e7eb 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            overflow: hidden;
+            border: 1px solid #e9ecef;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4a6fa5 0%, #6b8cbc 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 4px solid #4a6fa5;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #4a6fa5;
+            box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.1);
+        }
+
+        .hint {
+            font-size: 0.85em;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            min-width: 200px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4a6fa5 0%, #6b8cbc 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(74, 111, 165, 0.3);
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #495057;
+            border: 1px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        .results {
+            display: none;
+            margin-top: 40px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border: 1px solid #e9ecef;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .result-section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid #e9ecef;
+        }
+
+        .result-title {
+            font-size: 1.8em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .risk-badge {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 1.1em;
+            margin: 10px 0;
+        }
+
+        .risk-high {
+            background: #fff5f5;
+            color: #c92a2a;
+            border: 1px solid #ffc9c9;
+        }
+
+        .risk-low {
+            background: #f0fff4;
+            color: #2b8a3e;
+            border: 1px solid #c0ebc0;
+        }
+
+        .result-image {
+            max-width: 100%;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid #e9ecef;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #e9ecef;
+            border-top: 4px solid #4a6fa5;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info-text {
+            color: #495057;
+            line-height: 1.6;
+            margin: 10px 0;
+        }
+
+        .score-display {
+            font-size: 1.2em;
+            margin: 10px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #4a6fa5;
+        }
+
+        .pdf-embed-container {
+            width: 100%;
+            margin: 20px 0;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            overflow: hidden;
+            background: white;
+        }
+
+        .pdf-embed {
+            width: 100%;
+            height: auto;
+            min-height: 100px;
+            border: none;
+        }
+
+        /* 免责声明模态框样式 */
+        .disclaimer-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .disclaimer-modal.show {
+            display: flex;
+        }
+
+        .disclaimer-content {
+            background: white;
+            border-radius: 15px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 30px;
+            margin: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 1px solid #dee2e6;
+        }
+
+        .disclaimer-header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .disclaimer-header h2 {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+
+        .disclaimer-body {
+            line-height: 1.6;
+            color: #495057;
+        }
+
+        .disclaimer-body p {
+            margin-bottom: 15px;
+        }
+
+        .disclaimer-body strong {
+            color: #2c3e50;
+        }
+
+        .disclaimer-footer {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .disclaimer-btn {
+            padding: 12px 40px;
+            font-size: 1.1em;
+            background: #4a6fa5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .disclaimer-btn:hover {
+            background: #3a5a8a;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .button-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                min-width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            .disclaimer-content {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .pdf-embed {
+                min-height: 400px;
+            }
+            
+            .form-section {
+                padding: 20px;
+            }
+            
+            .content {
+                padding: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 免责声明模态框 -->
+    <div id="disclaimerModal" class="disclaimer-modal show">
+        <div class="disclaimer-content">
+            <div class="disclaimer-header">
+                <h2>Disclaimer / Important Notice</h2>
+            </div>
+            <div class="disclaimer-body">
+                <p>The Early-Onset Cardiovascular Disease (EOCVD) risk assessment and prognosis estimates provided on this website are generated by a statistical/machine-learning model based on the information entered by the user. The output is for educational and informational purposes only and is intended solely as an aid to understanding potential risk. It does not constitute medical advice, diagnosis, or treatment, and it is not a substitute for professional clinical judgment.</p>
+
+                <p>Because EOCVD is relatively uncommon in the general population, class imbalance and other real-world limitations may lead to model errors, including false positives (flagging higher risk when disease is not present) and false negatives (indicating lower risk when risk/disease may exist). The predicted score, probability, or risk category is not a definitive medical conclusion. Actual risk depends on multiple factors such as personal and family history, physical examination, laboratory tests, imaging studies, and clinician interpretation.</p>
+
+                <p>For diagnostic confirmation and clinical risk stratification, please rely on authoritative clinical definitions and guidelines (e.g., standards from the American Heart Association, AHA, and other relevant professional bodies) and seek evaluation in a qualified healthcare setting, including appropriate tests (e.g., blood pressure, lipid/glucose testing, ECG, echocardiography/imaging, and other clinically indicated assessments). A licensed clinician should make the final determination.</p>
+
+                <p>Emergency notice: If you experience chest pain/pressure, shortness of breath, sudden sweating, fainting, severe palpitations, weakness/numbness on one side, or difficulty speaking, seek emergency medical care immediately. Do not rely on this tool in urgent situations.</p>
+
+                <p>By using this website, you acknowledge that model outputs are uncertain and agree that the website/developers are not liable for any direct or indirect consequences arising from the use or misuse of the results.</p>
+            </div>
+            <div class="disclaimer-footer">
+                <button id="disclaimerBtn" class="disclaimer-btn">I Understand - OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Cardiovascular Disease Risk Assessment</h1>
+            <p>Early Detection and Prognosis Evaluation System</p>
+        </div>
+
+        <div class="content">
+            <form id="assessmentForm">
+                <!-- Basic Information -->
+                <div class="form-section">
+                    <h2 class="section-title">📋 Basic Information</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="age">Age *</label>
+                            <input type="number" id="age" name="age" value="48" min="1" max="65" required>
+                            <span class="hint">Positive integer ≤ 65</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="basic_gender">Sex *</label>
+                            <select id="basic_gender" name="basic_gender" required>
+                                <option value="0" selected>Female</option>
+                                <option value="1">Male</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="basic_height">Height (m) *</label>
+                            <input type="number" id="basic_height" name="basic_height" value="1.685" step="0.001" min="0" required>
+                            <span class="hint">Positive number</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="basic_weight">Weight (kg) *</label>
+                            <input type="number" id="basic_weight" name="basic_weight" value="61.9" step="0.1" min="0" required>
+                            <span class="hint">Positive number</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="basic_education">Education Level *</label>
+                            <select id="basic_education" name="basic_education" required>
+                                <option value="1" selected>Primary education and below</option>
+                                <option value="2">Secondary education</option>
+                                <option value="3">Higher education</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="basic_marital_status">Current Marital Status *</label>
+                            <select id="basic_marital_status" name="basic_marital_status" required>
+                                <option value="1" selected>Married</option>
+                                <option value="2">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="family_size">Family Size *</label>
+                            <input type="number" id="family_size" name="family_size" value="5" min="1" required>
+                            <span class="hint">Positive integer</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medical History -->
+                <div class="form-section">
+                    <h2 class="section-title">🏥 Medical History</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="disease_hypertension">Have Hypertension *</label>
+                            <select id="disease_hypertension" name="disease_hypertension" required>
+                                <option value="0">No</option>
+                                <option value="1" selected>Yes</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="disease_diabetes">Have Diabetes *</label>
+                            <select id="disease_diabetes" name="disease_diabetes" required>
+                                <option value="0" selected>No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="disease_cancer">Have Cancer *</label>
+                            <select id="disease_cancer" name="disease_cancer" required>
+                                <option value="0" selected>No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="disease_lung">Have Lung Disease *</label>
+                            <select id="disease_lung" name="disease_lung" required>
+                                <option value="0" selected>No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="disease_arthritis">Have Arthritis *</label>
+                            <select id="disease_arthritis" name="disease_arthritis" required>
+                                <option value="0">No</option>
+                                <option value="1" selected>Yes</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Physical Assessment -->
+                <div class="form-section">
+                    <h2 class="section-title">💪 Physical Assessment</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="grip_right">Right-hand Grip Strength (kg) *</label>
+                            <input type="number" id="grip_right" name="grip_right" value="24" step="0.1" min="0" required>
+                            <span class="hint">Positive number</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="grip_left">Left-hand Grip Strength (kg) *</label>
+                            <input type="number" id="grip_left" name="grip_left" value="26" step="0.1" min="0" required>
+                            <span class="hint">Positive number</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="self_rated_health">Self-assessment of Health *</label>
+                            <select id="self_rated_health" name="self_rated_health" required>
+                                <option value="1">1 (Excellent)</option>
+                                <option value="2">2 (Good)</option>
+                                <option value="3" selected>3 (Fair)</option>
+                                <option value="4">4 (Poor)</option>
+                                <option value="5">5 (Very Poor)</option>
+                            </select>
+                            <span class="hint">Higher indicates poorer health</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lifestyle Factors -->
+                <div class="form-section">
+                    <h2 class="section-title">🚬 Lifestyle Factors</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="smokev">Ever Smoke *</label>
+                            <select id="smokev" name="smokev" required>
+                                <option value="0">No</option>
+                                <option value="1" selected>Yes</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="smoken">Current Smoke *</label>
+                            <select id="smoken" name="smoken" required>
+                                <option value="0">No</option>
+                                <option value="1" selected>Yes</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="work">At Work *</label>
+                            <select id="work" name="work" required>
+                                <option value="0">No</option>
+                                <option value="1" selected>Yes</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="button-container">
+                    <button type="button" id="diagnosisBtn" class="btn btn-primary">🔍 Diagnosis Assessment</button>
+                    <button type="button" id="prognosisBtn" class="btn btn-primary">🎯 Prognosis Assessment</button>
+                    <button type="reset" class="btn btn-secondary">🔄 Reset Form</button>
+                </div>
+            </form>
+
+            <!-- Loading Indicator -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Analyzing your data... Please wait.</p>
+            </div>
+
+            <!-- Results Section -->
+            <div id="results" class="results">
+                <!-- Diagnosis Results -->
+                <div id="diagnosisResults" class="result-section" style="display: none;">
+                    <h2 class="result-title">🔬 Diagnosis Assessment</h2>
+                    <div class="score-display">
+                        Risk Score: <span id="diagScore"></span>
+                        <span id="diagRisk" class="risk-badge"></span>
+                    </div>
+                    <p class="info-text">Threshold: <span id="diagThreshold"></span></p>
+                    <img id="diagImage" class="result-image" alt="Diagnosis Risk Image">
+                    
+                    <h3 style="margin-top: 30px; color: #4a6fa5;">📊 SHAP Force Plot</h3>
+                    <p class="info-text">This visualization shows how each feature contributes to the diagnosis prediction:</p>
+                    <div class="pdf-embed-container">
+                        <embed id="shapPdf" class="pdf-embed" type="application/pdf">
+                    </div>
+                    <div style="text-align: center; margin-top: 10px;">
+                        <a id="shapDownload" class="btn btn-secondary" style="display: inline-block; text-decoration: none;">
+                            📥 Download SHAP Plot
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Prognosis Results -->
+                <div id="prognosisResults" class="result-section" style="display: none;">
+                    <h2 class="result-title">🎯 Prognosis Assessment</h2>
+                    <div class="score-display">
+                        Risk Score: <span id="progScore"></span>
+                        <span id="progRisk" class="risk-badge"></span>
+                    </div>
+                    <p class="info-text">Threshold: <span id="progThreshold"></span></p>
+                    <img id="progImage" class="result-image" alt="Prognosis Risk Image">
+                    
+                    <h3 style="margin-top: 30px; color: #4a6fa5;">📈 Cox Proportional Hazards Model</h3>
+                    <p class="info-text">
+                        The figure presents the variables from a Cox proportional hazards (CoxPH) model, 
+                        ranked by their hazard ratios, showing how different factors are associated with 
+                        the risk of the early onset cardiovascular disease occurring. Variables such as age, 
+                        smoking status, self-rated health, and several chronic diseases have stronger effects 
+                        on hazard. Hazard ratios greater than 1 indicate increased risk, while values below 1 
+                        indicate reduced risk. Significant variables (p < 0.05) are highlighted, indicating 
+                        statistically meaningful associations with survival outcomes.
+                    </p>
+                    <img id="progImage2" class="result-image" alt="Cox Model Visualization">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 免责声明处理
+        const disclaimerModal = document.getElementById('disclaimerModal');
+        const disclaimerBtn = document.getElementById('disclaimerBtn');
+        
+        disclaimerBtn.addEventListener('click', () => {
+            disclaimerModal.classList.remove('show');
+        });
+
+        // 表单处理
+        const form = document.getElementById('assessmentForm');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const diagnosisBtn = document.getElementById('diagnosisBtn');
+        const prognosisBtn = document.getElementById('prognosisBtn');
+        const diagnosisResults = document.getElementById('diagnosisResults');
+        const prognosisResults = document.getElementById('prognosisResults');
+
+        // 诊断评估
+        diagnosisBtn.addEventListener('click', async () => {
+            if (!validateForm()) return;
+            
+            // 显示诊断结果，隐藏预后结果
+            diagnosisResults.style.display = 'block';
+            prognosisResults.style.display = 'none';
+            
+            await performPrediction('/predict_diagnosis', 'diagnosis');
+        });
+
+        // 预后评估
+        prognosisBtn.addEventListener('click', async () => {
+            if (!validateForm()) return;
+            
+            // 显示预后结果，隐藏诊断结果
+            prognosisResults.style.display = 'block';
+            diagnosisResults.style.display = 'none';
+            
+            await performPrediction('/predict_prognosis', 'prognosis');
+        });
+
+        // 表单验证
+        function validateForm() {
+            const requiredFields = form.querySelectorAll('[required]');
+            let isValid = true;
+            
+            for (let field of requiredFields) {
+                if (!field.value.trim()) {
+                    field.style.borderColor = '#c62828';
+                    isValid = false;
+                } else {
+                    field.style.borderColor = '#dee2e6';
+                }
+            }
+            
+            if (!isValid) {
+                alert('Please fill in all required fields.');
+                return false;
+            }
+            
+            return true;
+        }
+
+        // 执行预测
+        async function performPrediction(endpoint, type) {
+            // Show loading, show results
+            loading.classList.add('show');
+            results.classList.add('show');
+            
+            // Collect form data
+            const formData = new FormData(form);
+            const data = {};
+            for (let [key, value] of formData.entries()) {
+                data[key] = value;
+            }
+            
+            try {
+                // Send prediction request
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (type === 'diagnosis') {
+                        // Display diagnosis results
+                        document.getElementById('diagScore').textContent = result.diagnosis.score;
+                        document.getElementById('diagThreshold').textContent = result.diagnosis.threshold;
+                        
+                        const diagRiskBadge = document.getElementById('diagRisk');
+                        diagRiskBadge.textContent = result.diagnosis.risk === 'high' ? 'High Risk ❌' : 'Low Risk ✅';
+                        diagRiskBadge.className = 'risk-badge ' + (result.diagnosis.risk === 'high' ? 'risk-high' : 'risk-low');
+                        
+                        document.getElementById('diagImage').src = result.diagnosis.image;
+                        document.getElementById('shapPdf').src = result.diagnosis.shap_pdf;
+                        document.getElementById('shapDownload').href = result.diagnosis.shap_pdf;
+                        document.getElementById('shapDownload').download = 'shap_force_plot.pdf';
+                    } else if (type === 'prognosis') {
+                        // Display prognosis results
+                        document.getElementById('progScore').textContent = result.prognosis.score;
+                        document.getElementById('progThreshold').textContent = result.prognosis.threshold;
+                        
+                        const progRiskBadge = document.getElementById('progRisk');
+                        progRiskBadge.textContent = result.prognosis.risk === 'high' ? 'High Risk ❌' : 'Low Risk ✅';
+                        progRiskBadge.className = 'risk-badge ' + (result.prognosis.risk === 'high' ? 'risk-high' : 'risk-low');
+                        
+                        document.getElementById('progImage').src = result.prognosis.image;
+                        document.getElementById('progImage2').src = result.prognosis.image2;
+                    }
+                    
+                    // Hide loading
+                    loading.classList.remove('show');
+                    
+                    // Scroll to results
+                    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    alert('Error: ' + result.error);
+                    loading.classList.remove('show');
+                }
+            } catch (error) {
+                alert('Request failed: ' + error.message);
+                loading.classList.remove('show');
+            }
+        }
+
+        // 重置表单时重置结果
+        form.addEventListener('reset', () => {
+            results.classList.remove('show');
+            diagnosisResults.style.display = 'none';
+            prognosisResults.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
